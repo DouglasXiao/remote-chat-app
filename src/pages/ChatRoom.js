@@ -8,7 +8,9 @@ import { Row, Container } from 'react-bootstrap';
 
 import CurrentUserText from '../components/CurrentUserText'
 import OtherUserText from '../components/OtherUserText'
-import ChatNotification from '../components/ChatNotification'
+import ChatNotification from '../components/ChatNotification';
+
+import { socket } from '../services/socket';
 
 let styles = {
 	chatRoomContainer: {
@@ -26,6 +28,10 @@ let styles = {
 	},
 	headerText: {
 		fontSize: 20,
+	},
+	buttonStyle: {
+		position: 'absolute',
+		marginLeft: 150
 	},
 	youAppearAsText: {
 		fontSize: 14,
@@ -92,23 +98,47 @@ class ChatRoom extends Component {
 
 		//If user does not have a userid and username saved in local storage, create them for them
 		if(!userIDVal){
+			socket.on("SetUserData", userData => {
+				localStorage.setItem('userID', userData.userID);
+				localStorage.setItem('username', userData.username);
+				console.log(userData);
 
-	      
-	    } 
-	    else {
-	    	
-	    }
+				this.setState({currentUsername: userData.username, currentUserID: userData.userID});
+				socket.emit("UserEnteredRoom", userData);
+			});
 
+			socket.emit("CreateUserData");
+		} 
+		else {
+			this.setState({currentUsername: usernameVal, currentUserID: userIDVal});
+			socket.emit("UserEnteredRoom", {userID: userIDVal, username: usernameVal});
+		}
+
+		socket.on("RetrieveChatRoomData", (chatRoomData) => {
+			this.setState({chatRoomData: chatRoomData}, () => this.shouldScrollToBottom());
+		});
 	}
 
+	componentWillUnmount() {
+		socket.off("RetrieveChatRoomData");
+		socket.off("SetUserData");
+	}
 
 	setMessage(message){
 		//Set Message being typed in input field
 		this.setState({message: message})
 	}
 
+	clearChatData(){
+		socket.emit("ClearChat");
+	}
+
 	sendMessageData(){
-		
+		var { message, currentUsername, currentUserID} = this.state;
+		if (message.length > 0) {
+			socket.emit("SendMessage", {message: message, username: currentUsername, userID: currentUserID, timestamp: null});
+			this.setState({message: ''});
+		}
 	}
 
 
@@ -139,7 +169,10 @@ class ChatRoom extends Component {
 			<Container style = {styles.chatRoomContainer}>
 
 				<Container style ={styles.header}>
-					<Row style={styles.headerText}>Chat Room</Row>
+					<Row style={styles.headerText}>
+						Chat Room 
+						<Button variant="contained" color="primary" style={styles.buttonStyle} onClick={() => this.clearChatData()}>Clear chat</Button>
+					</Row>
 					<Row style={styles.youAppearAsText}>
 						You appear as 
 						<div style={styles.usernameText}> {currentUsername}</div>

@@ -2,7 +2,7 @@ import React, {Component } from 'react';
 import Button from '@material-ui/core/Button';
 import { Row, Container } from 'react-bootstrap';
 
-import {socket} from '../services/socket'
+import {socket} from '../services/socket';
 
 
 const autoScrollOffset = 100 //offset value that allows screen to auto scroll when you are not exactly at bottom of chat window
@@ -28,7 +28,7 @@ class ChatRoom extends Component {
 	}
 
 	clearChatData(){
-		
+		socket.emit("ClearChat");
 	}
 
 	render(){
